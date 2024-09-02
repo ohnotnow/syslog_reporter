@@ -85,7 +85,7 @@ The following table provides _very_ approximate costs and processing times for a
 
 Please note that actual costs and processing times may vary depending on the specific content of your log files and any changes in API pricing.
 
-### Filtering logs
+## Filtering logs
 
 As syslogs can fill up with repeated noise that's of no interest, you can save a lot of time and money by
 filtering out common things you're not interested in.  At the top of `main.py` you'll see a list of things to ignore.
@@ -99,6 +99,14 @@ ignore_list = [
     "USB disconnect",
 ]
 ```
+
+## Notes
+
+- The default prompts have wording in them to guide them to assume CentOS or Rocky Linux, so if you're using Ubuntu or Debian, you'll need to modify the prompts.
+- The initial log scan can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines
+of syslog and filter out the noise, I get about 10,000 tokens.  You can measure this yourself at https://platform.openai.com/tokenizer .  But you might need to chunk your logs to keep well under the limit.
+- Remember you're passing your logs to OpenAI, so you may need to remove any sensitive information.
+
 
 ## License
 
