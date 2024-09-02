@@ -1,5 +1,7 @@
 from gepetto import gpt
 from datetime import datetime
+import re
+from collections import defaultdict
 import argparse
 import sys
 import tiktoken
@@ -118,6 +120,26 @@ an alternative such as Ubuntu or Debian.
 Remember, brevity is key. Provide only what an expert sysadmin needs to quickly address the issue.
 """
 
+
+def normalize_log_line(line):
+    # Remove timestamps and device numbers to normalize the line
+    normalized_line = re.sub(r'\b\d+\b', '', line)  # Remove any numbers (timestamps, device numbers, etc.)
+    normalized_line = re.sub(r'\s+', ' ', normalized_line.strip())  # Normalize whitespaces
+    return normalized_line
+
+def filter_duplicate_logs(log_lines, max_occurrences=3):
+    occurrence_dict = defaultdict(int)
+    filtered_logs = []
+
+    for line in log_lines:
+        normalized_line = normalize_log_line(line)
+
+        if occurrence_dict[normalized_line] < max_occurrences:
+            filtered_logs.append(line)
+            occurrence_dict[normalized_line] += 1
+
+    return filtered_logs
+
 def read_logfile(file) -> list[str]:
     if file == sys.stdin:
         lines = file.read().splitlines()
@@ -128,9 +150,7 @@ def read_logfile(file) -> list[str]:
     lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
     return lines
 
-def scan_logfile(file) -> tuple[str, float]:
-    lines = read_logfile(file)
-
+def scan_logfile(lines) -> tuple[str, float]:
     content = "\n".join(lines)
 
     messages = [
@@ -166,22 +186,27 @@ def get_resolutions(report_text: str) -> tuple[str, float]:
 
     return suggestions, response.cost
 
-def get_log_length(file, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int, int]:
-    lines = read_logfile(file)
+def get_log_length(lines, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int, int]:
     enc = tiktoken.encoding_for_model(model)
     return len(lines), len(enc.encode("\n".join(lines)))
 
-def main(file, resolutions, dry_count):
+def main(file, resolutions, dry_count, remove_duplicates):
     if file == "":
         file = sys.stdin
 
+    log_contents = read_logfile(file)
+    if remove_duplicates:
+        filtered_logs = filter_duplicate_logs(log_contents, max_occurrences=3)
+    else:
+        filtered_logs = log_contents
+
     if dry_count:
-        log_length, token_length = get_log_length(file)
+        log_length, token_length = get_log_length(filtered_logs)
         print(f"Length: {log_length} lines")
         print(f"Tokens: {token_length} tokens")
         return
 
-    report, cost = scan_logfile(file)
+    report, cost = scan_logfile(filtered_logs)
 
     suggestions_cost = 0
     if resolutions:
@@ -198,5 +223,6 @@ if __name__ == "__main__":
     parser.add_argument("--file", type=str, required=False, default="")
     parser.add_argument("--resolutions", action="store_true", required=False, default=False)
     parser.add_argument("--dry-count", action="store_true", required=False, default=False)
+    parser.add_argument("--remove-duplicates", action="store_true", required=False, default=False)
     args = parser.parse_args()
-    main(args.file, args.resolutions, args.dry_count)
+    main(args.file, args.resolutions, args.dry_count, args.remove_duplicates)
