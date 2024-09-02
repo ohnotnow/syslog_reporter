@@ -74,6 +74,17 @@ The tool generates a markdown report in the format `report_YYYY-MM-DD.md`, where
 - Recommendations for further investigation and resolution (if `--resolutions` flag is used).
 - The approximate cost of the API calls used for the analysis.
 
+## Costs & Time
+
+The following table provides _very_ approximate costs and processing times for analyzing a 1000-line log file (with the noise filtered out) using OpenAI GPT-4-Omni and GPT-4-Omni-Mini as of September 2024:
+
+| Analysis Type | Approximate Cost (USD) | Approximate Time |
+|---------------|------------------------|-------------------|
+| Log report only | $0.002 | 10-15 seconds |
+| Log report with resolutions | $0.01 | 15-20 seconds |
+
+Please note that actual costs and processing times may vary depending on the specific content of your log files and any changes in API pricing.
+
 ### Filtering logs
 
 As syslogs can fill up with repeated noise that's of no interest, you can save a lot of time and money by
