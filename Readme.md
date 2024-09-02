@@ -129,7 +129,7 @@ ignore_list = [
 
 MIT License. You can use, modify, and distribute this software under the terms of the MIT license.
 
-## Example Report (with resolutions)
+## Example Report (redactedwith resolutions)
 
 # Syslog Report for 2024-09-02
 
