@@ -74,6 +74,21 @@ The tool generates a markdown report in the format `report_YYYY-MM-DD.md`, where
 - Recommendations for further investigation and resolution (if `--resolutions` flag is used).
 - The approximate cost of the API calls used for the analysis.
 
+### Filtering logs
+
+As syslogs can fill up with repeated noise that's of no interest, you can save a lot of time and money by
+filtering out common things you're not interested in.  At the top of `main.py` you'll see a list of things to ignore.
+Feel free to modify this list to your liking.
+
+```python
+ignore_list = [
+    "arpwatch: bogon",
+    "unknown client",
+    "vmmon: Hello",
+    "USB disconnect",
+]
+```
+
 ## License
 
 MIT License. You can use, modify, and distribute this software under the terms of the MIT license.
