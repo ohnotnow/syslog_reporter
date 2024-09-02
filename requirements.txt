@@ -1,0 +1,4 @@
+openai==1.4.0
+groq
+anthropic
+yaspin

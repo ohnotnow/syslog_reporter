@@ -1,0 +1,7 @@
+.env
+__pycache__*
+venv*
+autogen.*
+.env.*
+test_*
+report_*
