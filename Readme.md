@@ -13,15 +13,14 @@ This tool provides an automated system log analysis and resolution suggestion ut
 ### Prerequisites
 
 - Python 3.7 or higher
-- `gepetto` Python package (assumed installed)
-- `argparse`, `datetime`, and `sys` are standard Python libraries.
+- OpenAI API key
 
 ### Setup
 
 1. Clone the repository:
     ```bash
-    git clone <YOUR_GITHUB_REPO_URL>
-    cd <REPOSITORY_NAME>
+    git clone https://github.com/ohnotnow/syslog_reporter
+    cd syslog_reporter
     ```
 
 2. Create a virtual environment and activate it:
@@ -50,6 +49,7 @@ You can use the tool by providing a syslog file as input. Optionally, you can en
 ### Command-Line Interface
 
 ```bash
+export OPENAI_API_KEY=<your_openai_api_key>
 python main.py --file <path_to_syslog_file> [--resolutions]
 ```
 
