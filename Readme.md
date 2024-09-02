@@ -55,6 +55,7 @@ python main.py --file <path_to_syslog_file> [--resolutions]
 
 - `--file`: Path to the syslog file you want to analyze. If omitted, the script will read from `stdin`.
 - `--resolutions`: Include this flag to generate resolution suggestions for identified issues.
+- `--dry-count`: Include this flag to get a token count for the log file and exit.
 
 ### Example
 
@@ -63,6 +64,14 @@ python main.py --file /var/log/syslog --resolutions
 ```
 
 This will analyze `/var/log/syslog`, generate a report, and include suggested resolutions in the output.
+
+To do a dry run and figure out how long your log data is, you can use the `--dry-count` flag:
+
+```bash
+$ python main.py --file /var/log/syslog --dry-count
+Length: 187 lines
+Tokens: 11341 tokens
+```
 
 ## Output
 
@@ -103,8 +112,7 @@ ignore_list = [
 ## Notes
 
 - The default prompts have wording in them to guide them to assume CentOS or Rocky Linux, so if you're using Ubuntu or Debian, you'll need to modify the prompts.
-- The initial log scan can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines
-of syslog and filter out the noise, I get about 10,000 tokens.  You can measure this yourself at https://platform.openai.com/tokenizer .  But you might need to chunk your logs to keep well under the limit.
+- Syslog output is very 'token heavy'.  The initial log scan can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines of syslog and filter out the noise leaving about 165 'real' lines, I get about 10,000 tokens.  You can use the `--dry-count` flag to get a token count for your log file and exit without doing the full analysis, which is handy for testing.
 - Remember you're passing your logs to OpenAI, so you may need to remove any sensitive information.
 
 

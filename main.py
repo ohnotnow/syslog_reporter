@@ -2,6 +2,7 @@ from gepetto import gpt
 from datetime import datetime
 import argparse
 import sys
+import tiktoken
 
 bot = gpt.GPTModelSync()
 bot.model = gpt.Model.GPT_4_OMNI_MINI.value[0]
@@ -117,7 +118,7 @@ an alternative such as Ubuntu or Debian.
 Remember, brevity is key. Provide only what an expert sysadmin needs to quickly address the issue.
 """
 
-def scan_logfile(file) -> tuple[str, float]:
+def read_logfile(file) -> list[str]:
     if file == sys.stdin:
         lines = file.read().splitlines()
     else:
@@ -125,6 +126,11 @@ def scan_logfile(file) -> tuple[str, float]:
             lines = f.read().splitlines()
 
     lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
+    return lines
+
+def scan_logfile(file) -> tuple[str, float]:
+    lines = read_logfile(file)
+
     content = "\n".join(lines)
 
     messages = [
@@ -160,10 +166,20 @@ def get_resolutions(report_text: str) -> tuple[str, float]:
 
     return suggestions, response.cost
 
-def main(file, resolutions):
-    # if file is not provided, use stdin
+def get_log_length(file, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int, int]:
+    lines = read_logfile(file)
+    enc = tiktoken.encoding_for_model(model)
+    return len(lines), len(enc.encode("\n".join(lines)))
+
+def main(file, resolutions, dry_count):
     if file == "":
         file = sys.stdin
+
+    if dry_count:
+        log_length, token_length = get_log_length(file)
+        print(f"Length: {log_length} lines")
+        print(f"Tokens: {token_length} tokens")
+        return
 
     report, cost = scan_logfile(file)
 
@@ -181,5 +197,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, required=False, default="")
     parser.add_argument("--resolutions", action="store_true", required=False, default=False)
+    parser.add_argument("--dry-count", action="store_true", required=False, default=False)
     args = parser.parse_args()
-    main(args.file, args.resolutions)
+    main(args.file, args.resolutions, args.dry_count)
