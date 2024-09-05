@@ -57,14 +57,15 @@ python main.py --file <path_to_syslog_file> [--resolutions]
 - `--resolutions`: Include this flag to generate resolution suggestions for identified issues.
 - `--dry-count`: Include this flag to get a token count for the log file and exit.
 - `--remove-duplicates`: Include this flag to remove more than three copies of duplicate/similar log entries.
+- `--config-file`: Include this flag to use a custom config file - defaults to 'prompts' (ie, `prompts.py`).
 
 ### Example
 
 ```bash
-python main.py --file /var/log/syslog --resolutions
+python main.py --file /var/log/syslog --resolutions --remove-duplicates
 ```
 
-This will analyze `/var/log/syslog`, generate a report, and include suggested resolutions in the output.
+This will remove the bulk of duplicate log entries, analyze the remaining log file, generate a report, and include suggested resolutions in the output.
 
 To do a dry run and figure out how long your log data is, you can use the `--dry-count` flag:
 
@@ -80,6 +81,39 @@ You can also remove duplicate log entries using the `--remove-duplicates` flag t
 $ python main.py --file /var/log/syslog --remove-duplicates
 Length: 150 lines
 Tokens: 7530 tokens
+```
+
+You can also use a custom config file to override the default prompts.  For example, if you wanted to use a different set of prompts for Ubuntu you could create a file called `prompts_ubuntu.py` with your overrides and then run the tool like this:
+
+```bash
+$ python main.py --file /var/log/syslog --resolutions --remove-duplicates --config-file prompts_ubuntu.py
+```
+
+The format of the file should be the same as the default prompts.py file.
+
+## Usage (Docker)
+
+You can also run this tool using Docker. This approach ensures that all dependencies are correctly installed and isolated from your system.
+
+### Building the Docker Image
+
+1. Ensure you have Docker installed on your system.
+2. Navigate to the directory containing the Dockerfile and run:
+
+```bash
+docker build -t syslog-reporter .
+```
+
+### Running the Docker Container
+
+```bash
+tail -500 /var/log/syslog | docker run -i --rm syslog-reporter --resolutions --remove-duplicates --config-file prompts_ubuntu.py
+```
+
+**Note** - if you're using a custom config file, you'll need to mount it into the container (or rebuild the image with the custom config file).
+
+```sh
+tail -500 /var/log/syslog | docker run -i --rm -v $(pwd)/prompts_ubuntu.py:/app/prompts.py syslog-reporter --resolutions --remove-duplicates
 ```
 
 ## Output
@@ -211,9 +245,7 @@ Fix:
 
 Investigate: `tail -n 100 /var/log/nagios/nagios.log`
 
-Prevent: Ensure Nagios timeout parameters are aligned with network conditions.
-
----
+Prevent: Ensure Nagios timeout parameters are aligned with network conditions.---
 
 ### Duplicate DHCP Lease
 
