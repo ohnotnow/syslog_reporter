@@ -154,6 +154,16 @@ ignore_list = [
 ]
 ```
 
+You can also set it only match certain things, by adding to the `match_list` variable.
+```python
+match_list = [
+    "kernel",
+    "nagios",
+    "dhcpd",
+]
+```
+This can be useful if you only want to report on certain things and report them to a specific person or team.  Using the `--config-file` flag you could use a custom config file for each person/team.
+
 ## Notes
 
 - The default prompts have wording in them to guide them to assume CentOS or Rocky Linux, so if you're using Ubuntu or Debian, you'll need to modify the prompts.
