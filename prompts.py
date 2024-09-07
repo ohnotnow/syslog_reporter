@@ -62,7 +62,7 @@ You are an AI assistant specializing in system log analysis. Your task is to ana
 - Avoid generalizations; instead, provide concrete details and exact log entries
 - If an issue affects multiple hosts, explicitly state this and provide an example from one specific host
 - Ensure that your analysis is actionable by including specific hostnames, services, and timestamps
-
+- If there are no critical issues, use the above format, but report the issues as "No critical issues found"
 Remember, specific examples and exact log entries are crucial for effective troubleshooting. Prioritize providing these details in your analysis.
 """
 

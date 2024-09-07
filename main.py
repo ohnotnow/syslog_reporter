@@ -97,6 +97,10 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         sys.exit(1)
 
     log_contents = read_logfile(file, config.ignore_list, config.match_list)
+    if len(log_contents) == 0:
+        print("No log entries found")
+        return
+
     if remove_duplicates:
         filtered_logs = filter_duplicate_logs(log_contents, max_occurrences=3)
     else:
@@ -111,7 +115,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
     report, cost = scan_logfile(filtered_logs, config.log_scan_prompt)
 
     suggestions_cost = 0
-    if resolutions:
+    if resolutions and not "No critical issues found" in report:
         suggestions, suggestions_cost = get_resolutions(report, config.resolution_prompt)
         report += f"\n\n## Suggestions\n\n{suggestions}"
 
