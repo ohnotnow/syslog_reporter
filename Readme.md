@@ -55,6 +55,7 @@ python main.py --file <path_to_syslog_file> [--resolutions]
 ```
 
 - `--file`: Path to the syslog file you want to analyze. If omitted, the script will read from `stdin`.
+- `--output-file`: Path to the output file. If omitted, the script will write to `stdout`.
 - `--resolutions`: Include this flag to generate resolution suggestions for identified issues.
 - `--dry-count`: Include this flag to get a token count for the log file and exit.
 - `--remove-duplicates`: Include this flag to remove more than three copies of duplicate/similar log entries.

@@ -81,9 +81,11 @@ def get_log_stats(lines, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int,
     enc = tiktoken.encoding_for_model(model)
     return len(lines), len(enc.encode("\n".join(lines)))
 
-def main(file, resolutions, dry_count, remove_duplicates, config_file):
+def main(file, resolutions, dry_count, remove_duplicates, config_file, output_file):
     if file == "":
         file = sys.stdin
+    if output_file == "":
+        output_file = sys.stdout
 
     try:
         if config_file.endswith(".py"):
@@ -114,16 +116,21 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file):
         report += f"\n\n## Suggestions\n\n{suggestions}"
 
     today_string = datetime.now().strftime("%Y-%m-%d")
-    with open(f'report_{today_string}.md', 'w') as file:
-        file.write(f"# Syslog Report for {today_string}\n\n{report}\n\n")
-        file.write(f"_Cost: US${cost + suggestions_cost:.3f}_\n\n")
+    final_report = f"# Log Report for {today_string}\n\n{report}\n\n"
+    final_report += f"_Cost: US${cost + suggestions_cost:.3f}_\n\n"
+    if output_file == sys.stdout:
+        output_file.write(final_report)
+    else:
+        with open(output_file, 'w') as file:
+            file.write(final_report)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, required=False, default="")
+    parser.add_argument("--output-file", type=str, required=False, default="")
     parser.add_argument("--resolutions", action="store_true", required=False, default=False)
     parser.add_argument("--dry-count", action="store_true", required=False, default=False)
     parser.add_argument("--remove-duplicates", action="store_true", required=False, default=False)
     parser.add_argument("--config-file", type=str, required=False, default="prompts")
     args = parser.parse_args()
-    main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file)
+    main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file, args.output_file)
