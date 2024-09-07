@@ -7,6 +7,7 @@ This tool provides an automated system log analysis and resolution suggestion ut
 - **Critical Issue Identification**: Scans system logs for high-priority problems such as security breaches, service failures, resource exhaustion, network issues, and more.
 - **Detailed Reports**: Generates a concise summary with specific log entries, affected hosts/services, timestamps, and potential impacts.
 - **Resolution Suggestions**: Offers expert-level resolutions for identified issues, including root cause analysis, step-by-step fixes, and preventive measures.
+- **Customization**: Allows for easy customization of ignore and match lists and system prompts to tailor the analysis to specific environments or requirements.
 
 ## Installation
 

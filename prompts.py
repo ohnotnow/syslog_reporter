@@ -5,6 +5,10 @@ ignore_list = [
     "USB disconnect",
 ]
 
+match_list = [
+    # "nagios",
+]
+
 log_scan_prompt = """
 # System Log Analysis Prompt
 

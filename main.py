@@ -28,14 +28,17 @@ def filter_duplicate_logs(log_lines, max_occurrences=3):
 
     return filtered_logs
 
-def read_logfile(file, ignore_list) -> list[str]:
+def read_logfile(file, ignore_list, match_list) -> list[str]:
     if file == sys.stdin:
         lines = file.read().splitlines()
     else:
         with open(file, 'r') as f:
             lines = f.read().splitlines()
 
-    lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
+    if len(ignore_list) > 0:
+        lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
+    if len(match_list) > 0:
+        lines = [line for line in lines if any(match in line for match in match_list)]
     return lines
 
 def scan_logfile(lines: list[str], log_scan_prompt: str) -> tuple[str, float]:
@@ -91,7 +94,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file):
         print(e)
         sys.exit(1)
 
-    log_contents = read_logfile(file, config.ignore_list)
+    log_contents = read_logfile(file, config.ignore_list, config.match_list)
     if remove_duplicates:
         filtered_logs = filter_duplicate_logs(log_contents, max_occurrences=3)
     else:
