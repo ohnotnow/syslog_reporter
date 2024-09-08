@@ -86,6 +86,9 @@ def get_log_stats(lines, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int,
     return len(lines), len(enc.encode("\n".join(lines)))
 
 def check_file_args(file, output_file):
+    """
+    Check if the input or output file should be stdin/stdout
+    """
     if file == "":
         file = sys.stdin
     if output_file == "":
