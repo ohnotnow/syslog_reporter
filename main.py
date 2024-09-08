@@ -35,10 +35,14 @@ def read_logfile(file, ignore_list, match_list) -> list[str]:
         with open(file, 'r') as f:
             lines = f.read().splitlines()
 
+    # Remove empty lines
+    lines = [line for line in lines if line.strip() != ""]
+
     if len(ignore_list) > 0:
         lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
     if len(match_list) > 0:
         lines = [line for line in lines if any(match in line for match in match_list)]
+
     return lines
 
 def scan_logfile(lines: list[str], log_scan_prompt: str) -> tuple[str, float]:
@@ -81,12 +85,14 @@ def get_log_stats(lines, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int,
     enc = tiktoken.encoding_for_model(model)
     return len(lines), len(enc.encode("\n".join(lines)))
 
-def main(file, resolutions, dry_count, remove_duplicates, config_file, output_file):
+def check_file_args(file, output_file):
     if file == "":
         file = sys.stdin
     if output_file == "":
         output_file = sys.stdout
+    return file, output_file
 
+def load_config(config_file):
     try:
         if config_file.endswith(".py"):
             config_file = config_file[:-3]
@@ -95,6 +101,22 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         print(f"Error: Failed to import config file {config_file}")
         print(e)
         sys.exit(1)
+    return config
+
+def output_final_report(report, cost, suggestions_cost, output_file):
+    today_string = datetime.now().strftime("%Y-%m-%d")
+    final_report = f"# Log Report for {today_string}\n\n{report}\n\n"
+    final_report += f"_Cost: US${cost + suggestions_cost:.3f}_\n\n"
+    if output_file == sys.stdout:
+        print(final_report)
+    else:
+        with open(output_file, 'w') as file:
+            file.write(final_report)
+
+def main(file, resolutions, dry_count, remove_duplicates, config_file, output_file):
+    file, output_file = check_file_args(file, output_file)
+
+    config = load_config(config_file)
 
     log_contents = read_logfile(file, config.ignore_list, config.match_list)
     if len(log_contents) == 0:
@@ -102,31 +124,22 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         return
 
     if remove_duplicates:
-        filtered_logs = filter_duplicate_logs(log_contents, max_occurrences=3)
-    else:
-        filtered_logs = log_contents
+        log_contents = filter_duplicate_logs(log_contents, max_occurrences=3)
 
     if dry_count:
-        log_length, token_length = get_log_stats(filtered_logs)
+        log_length, token_length = get_log_stats(log_contents)
         print(f"Length: {log_length} lines")
         print(f"Tokens: {token_length} tokens")
         return
 
-    report, cost = scan_logfile(filtered_logs, config.log_scan_prompt)
+    report, cost = scan_logfile(log_contents, config.log_scan_prompt)
 
     suggestions_cost = 0
     if resolutions and not "No critical issues found" in report:
         suggestions, suggestions_cost = get_resolutions(report, config.resolution_prompt)
         report += f"\n\n## Suggestions\n\n{suggestions}"
 
-    today_string = datetime.now().strftime("%Y-%m-%d")
-    final_report = f"# Log Report for {today_string}\n\n{report}\n\n"
-    final_report += f"_Cost: US${cost + suggestions_cost:.3f}_\n\n"
-    if output_file == sys.stdout:
-        output_file.write(final_report)
-    else:
-        with open(output_file, 'w') as file:
-            file.write(final_report)
+    output_final_report(report, cost, suggestions_cost, output_file)
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
