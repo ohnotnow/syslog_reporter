@@ -45,7 +45,7 @@ This tool provides an automated system log analysis and resolution suggestion ut
 
 ## Usage
 
-You can use the tool by providing a syslog file as input. Optionally, you can enable resolution suggestions.
+You can use the tool by providing a syslog file as input. You can also pass various flags and a custom config file to override the default behaviour of the script.
 
 ### Command-Line Interface
 
@@ -56,15 +56,15 @@ python main.py --file <path_to_syslog_file> [--resolutions]
 
 - `--file`: Path to the syslog file you want to analyze. If omitted, the script will read from `stdin`.
 - `--output-file`: Path to the output file. If omitted, the script will write to `stdout`.
-- `--resolutions`: Include this flag to generate resolution suggestions for identified issues.
+- `--resolutions`: Include this flag to generate resolution suggestions for identified issues. Defaults to `True`.
 - `--dry-count`: Include this flag to get a token count for the log file and exit.
-- `--remove-duplicates`: Include this flag to remove more than three copies of duplicate/similar log entries.
+- `--remove-duplicates`: Include this flag to remove more than three copies of duplicate/similar log entries. Defaults to `True`.
 - `--config-file`: Include this flag to use a custom config file - defaults to 'prompts' (ie, `prompts.py`).
 
 ### Example
 
 ```bash
-python main.py --file /var/log/syslog --resolutions --remove-duplicates
+python main.py --file /var/log/syslog
 ```
 
 This will remove the bulk of duplicate log entries, analyze the remaining log file, generate a report, and include suggested resolutions in the output.
@@ -77,18 +77,23 @@ Length: 187 lines
 Tokens: 11341 tokens
 ```
 
-You can also remove duplicate log entries using the `--remove-duplicates` flag to cut down on more noise:
+By default, the script will remove duplicate/similar log entries that occur more than three times.  This can cut out a reasonable
+amount of similar-but-not-identical log entries.  You can stop this by using the `--remove-duplicates=false` flag:
 
 ```bash
-$ python main.py --file /var/log/syslog --remove-duplicates
+$ python main.py --file /var/log/syslog
 Length: 150 lines
 Tokens: 7530 tokens
+
+$ python main.py --file /var/log/syslog --remove-duplicates=false
+Length: 187 lines
+Tokens: 11341 tokens
 ```
 
 You can also use a custom config file to override the default prompts.  For example, if you wanted to use a different set of prompts for Ubuntu you could create a file called `prompts_ubuntu.py` with your overrides and then run the tool like this:
 
 ```bash
-$ python main.py --file /var/log/syslog --resolutions --remove-duplicates --config-file prompts_ubuntu.py
+$ python main.py --file /var/log/syslog --config-file prompts_ubuntu.py
 ```
 
 The format of the file should be the same as the default prompts.py file.
@@ -109,13 +114,13 @@ docker build -t syslog-reporter .
 ### Running the Docker Container
 
 ```bash
-tail -500 /var/log/syslog | docker run -i --rm syslog-reporter --resolutions --remove-duplicates --config-file prompts_ubuntu.py
+tail -500 /var/log/syslog | docker run -i --rm syslog-reporter --config-file prompts_ubuntu.py
 ```
 
 **Note** - if you're using a custom config file, you'll need to mount it into the container (or rebuild the image with the custom config file).
 
 ```sh
-tail -500 /var/log/syslog | docker run -i --rm -v $(pwd)/prompts_ubuntu.py:/app/prompts.py syslog-reporter --resolutions --remove-duplicates
+tail -500 /var/log/syslog | docker run -i --rm -v $(pwd)/prompts_ubuntu.py:/app/prompts.py syslog-reporter
 ```
 
 ## Output
@@ -125,7 +130,7 @@ The tool generates a markdown report in the format `report_YYYY-MM-DD.md`, where
 - A summary of identified critical issues.
 - Example log entries.
 - Affected hosts and services.
-- Recommendations for further investigation and resolution (if `--resolutions` flag is used).
+- Recommendations for further investigation and resolution (unless the `--resolutions=false` flag is used).
 - The approximate cost of the API calls used for the analysis.
 
 ## Costs & Time
@@ -142,7 +147,7 @@ Please note that actual costs and processing times may vary depending on the spe
 ## Filtering logs
 
 As syslogs can fill up with repeated noise that's of no interest, you can save a lot of time and money by
-filtering out common things you're not interested in.  At the top of `main.py` you'll see a list of things to ignore.
+filtering out common things you're not interested in.  At the top of `prompts.py` you'll see a list of things to ignore.
 Feel free to modify this list to your liking.
 
 ```python
@@ -167,7 +172,7 @@ This can be useful if you only want to report on certain things and report them 
 ## Notes
 
 - The default prompts have wording in them to guide them to assume CentOS or Rocky Linux, so if you're using Ubuntu or Debian, you'll need to modify the prompts.
-- Syslog output is very 'token heavy'.  The initial log scan can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines of syslog and filter out the noise leaving about 165 'real' lines, I get about 10,000 tokens.  You can use the `--dry-count` flag to get a token count for your log file and exit without doing the full analysis, which is handy for testing.  The `--remove-duplicates` flag can also help reduce the token count by removing more than three copies of duplicate/similar log entries.
+- Syslog output is very 'token heavy'.  The LLM can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines of syslog and filter out the noise leaving about 165 'real' lines, I get about 10,000 tokens.  You can use the `--dry-count` flag to get a token count for your log file and exit without doing the full analysis, which is handy for testing.
 - The script will automatically split up the log file into chunks if it's too large to process in one go.  But be aware
 that this means you could accidentally send a _lot_ of tokens to OpenAI.  It's worth using the `--dry-count` flag to check
 the token count before running the full analysis.
@@ -187,7 +192,7 @@ Here's a detailed analysis of the critical issues found in the provided syslog d
 
 - Issue: PulseAudio Segfaults
   - Description: Multiple instances of the PulseAudio service encountered segmentation faults due to errors in the libalsa-util.so library.
-  - Example log entry: `Aug 30 11:22:57 server-x kernel: [330587.153251] pulseaudio[2836870]: segfault at 10 ip 00007f52631e71c2 sp 00007fff2486b560 error 4 in libalsa-util.so[7f52631ca000+51000]`
+  - Example log entry: `Aug 30 11:22:57 host23 kernel: [330587.153251] pulseaudio[2836870]: segfault at 10 ip 00007f52631e71c2 sp 00007fff2486b560 error 4 in libalsa-util.so[7f52631ca000+51000]`
   - Affected host(s): **host23**
   - Affected service: **PulseAudio**
   - Timestamp/Frequency: Occurred frequently between 11:22:57 and 11:23:48 with multiple entries; approximately 3 instances.
@@ -196,7 +201,7 @@ Here's a detailed analysis of the critical issues found in the provided syslog d
 
 - Issue: Nagios Check Timeouts
   - Description: Nagios check jobs for several hosts, including "host23" and "host24," timed out indicating potential network or operational issues.
-  - Example log entry: `Aug 30 11:20:59 server-x nagios: Warning: Check of host 'host23' timed out after 30.01 seconds`
+  - Example log entry: `Aug 30 11:20:59 host23 nagios: Warning: Check of host 'host23' timed out after 30.01 seconds`
   - Affected host(s): **host23**, **host24**
   - Affected service: **Nagios**
   - Timestamp/Frequency: Timeouts logged at least for jobs 3979 and 3980 around 11:20 and 11:21.
