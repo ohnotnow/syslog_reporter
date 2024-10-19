@@ -45,23 +45,45 @@ def read_logfile(file, ignore_list, match_list) -> list[str]:
 
     return lines
 
-def scan_logfile(lines: list[str], log_scan_prompt: str) -> tuple[str, float]:
-    content = "\n".join(lines)
+def scan_logfile(lines: list[str], log_scan_prompt: str, log_scan_review_prompt: str, line_chunk_size: int = 1000) -> tuple[str, float]:
+    chunks = [lines[i:i+line_chunk_size] for i in range(0, len(lines), line_chunk_size)]
+    if len(chunks) > 1:
+        print(f"Long log file - splitting into {len(chunks)} chunks", file=sys.stderr)
+    report = ""
+    total_cost = 0
+    for chunk in chunks:
+        content = "\n".join(chunk)
 
-    messages = [
-        {
-            "role": "system",
-            "content": log_scan_prompt
-        },
-        {
-            "role": "user",
-            "content": content
-        }
-    ]
-    response = bot.chat(messages, model=gpt.Model.GPT_4_OMNI_MINI.value[0], temperature=0.1)
-    report = response.message
-    report = report.replace("```", "")
-    return report, response.cost
+        messages = [
+            {
+                "role": "system",
+                "content": log_scan_prompt
+            },
+            {
+                "role": "user",
+                "content": content
+            }
+        ]
+        response = bot.chat(messages, model=gpt.Model.GPT_4_OMNI_MINI.value[0], temperature=0.1)
+        report += response.message
+        report = report.replace("```", "")
+        total_cost += response.cost
+    if len(chunks) > 1 and len(report) < 50000:
+        messages = [
+            {
+                "role": "system",
+                "content": log_scan_review_prompt
+            },
+            {
+                "role": "user",
+                "content": report
+            }
+        ]
+        response = bot.chat(messages, model=gpt.Model.GPT_4_OMNI_0806.value[0], temperature=0.1)
+        report = response.message
+        report = report.replace("```", "")
+        total_cost += response.cost
+    return report, total_cost
 
 def get_resolutions(report_text: str, resolution_prompt: str) -> tuple[str, float]:
     messages = [
@@ -135,7 +157,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         print(f"Tokens: {token_length} tokens")
         return
 
-    report, cost = scan_logfile(log_contents, config.log_scan_prompt)
+    report, cost = scan_logfile(log_contents, config.log_scan_prompt, config.log_scan_review_prompt)
 
     suggestions_cost = 0
     if resolutions and not "No critical issues found" in report:

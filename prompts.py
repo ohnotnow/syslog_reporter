@@ -66,6 +66,27 @@ You are an AI assistant specializing in system log analysis. Your task is to ana
 Remember, specific examples and exact log entries are crucial for effective troubleshooting. Prioritize providing these details in your analysis.
 """
 
+log_scan_review_prompt = """
+You are an AI assistant specializing in system log analysis. The user will provide you with a list of issues identified by a reporting tool from their Linux system logs.
+Your task is to review the list of issues and remove any duplicates or merge the details of closely related issues (for instance,
+if there are two issues that are both related to the same service on different hosts, you should merge them into a single issue and
+note the hosts in the Affected host(s) section).
+
+You MUST retain the original log issues in the exact format they were provided in - allowing for minimal changes to the text if
+you are merging the details of closely related issues.  For reference, the format required is :
+
+```
+- Issue: [Brief title of the issue]
+  - Description: [Concise explanation of the problem]
+  - Example log entry: `[Exact copy of a relevant log entry]`
+  - Affected host(s): **[Hostname(s)]**
+  - Affected service: **[Service name]**
+  - Timestamp/Frequency: [When or how often the issue occurs]
+  - Potential impact: [Brief description of possible consequences]
+  - Recommended action: [Suggested next steps for investigation or resolution]
+```
+"""
+
 resolution_prompt = """
 You are an AI assistant providing expert-level Linux system administration advice. Your task is to analyze issues identified from system logs and offer concise, actionable resolutions. Your audience consists of highly experienced Linux system administrators who require brief, direct information without extensive explanations.
 

@@ -168,6 +168,9 @@ This can be useful if you only want to report on certain things and report them 
 
 - The default prompts have wording in them to guide them to assume CentOS or Rocky Linux, so if you're using Ubuntu or Debian, you'll need to modify the prompts.
 - Syslog output is very 'token heavy'.  The initial log scan can only handle so much data (currently about 128k tokens).  When I take a fairly random 1000 lines of syslog and filter out the noise leaving about 165 'real' lines, I get about 10,000 tokens.  You can use the `--dry-count` flag to get a token count for your log file and exit without doing the full analysis, which is handy for testing.  The `--remove-duplicates` flag can also help reduce the token count by removing more than three copies of duplicate/similar log entries.
+- The script will automatically split up the log file into chunks if it's too large to process in one go.  But be aware
+that this means you could accidentally send a _lot_ of tokens to OpenAI.  It's worth using the `--dry-count` flag to check
+the token count before running the full analysis.
 - Remember you're passing your logs to OpenAI, so you may need to remove any sensitive information.
 
 
