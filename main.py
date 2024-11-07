@@ -12,8 +12,11 @@ bot.model = gpt.Model.GPT_4_OMNI_MINI.value[0]
 
 def normalize_log_line(line):
     # Remove timestamp at the start
-    normalized_line = re.sub(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2}', '', line)
-
+    normalized_line = re.sub(
+        r'^(?:\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2}|[A-Z][a-z]{2}\s+\d{1,2}\s+\d{2}:\d{2}:\d{2})',
+        '',
+        line
+    )
     # Remove process IDs in square brackets
     normalized_line = re.sub(r'\[\d+\]', '[]', normalized_line)
 
@@ -48,11 +51,11 @@ def normalize_log_line(line):
 
     return normalized_line
 
-def normalize_log_line(line):
-    # Remove timestamps and device numbers to normalize the line
-    normalized_line = re.sub(r'\b\d+\b', '', line)  # Remove any numbers (timestamps, device numbers, etc.)
-    normalized_line = re.sub(r'\s+', ' ', normalized_line.strip())  # Normalize whitespaces
-    return normalized_line
+# def normalize_log_line(line):
+#     # Remove timestamps and device numbers to normalize the line
+#     normalized_line = re.sub(r'\b\d+\b', '', line)  # Remove any numbers (timestamps, device numbers, etc.)
+#     normalized_line = re.sub(r'\s+', ' ', normalized_line.strip())  # Normalize whitespaces
+#     return normalized_line
 
 def filter_duplicate_logs(log_lines, max_occurrences=3):
     occurrence_dict = defaultdict(int)
