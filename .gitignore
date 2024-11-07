@@ -5,3 +5,4 @@ autogen.*
 .env.*
 test_*
 report_*
+local_overrides.py

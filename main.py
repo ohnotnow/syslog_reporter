@@ -1,6 +1,7 @@
 from gepetto import gpt
 from datetime import datetime
 import re
+import os
 from collections import defaultdict
 import argparse
 import sys
@@ -470,11 +471,30 @@ def check_file_args(file, output_file):
         output_file = sys.stdout
     return file, output_file
 
-def load_config(config_file):
+def merge_configs(config, overrides):
+    mergable_lists = ["ignore_list", "match_list", "regex_ignore_list"]
+    for list_name in mergable_lists:
+        if hasattr(overrides, list_name):
+            setattr(config, list_name, list(set(getattr(config, list_name) + getattr(overrides, list_name))))
+    mergeable_dicts = ["replacement_map"]
+    for dict_name in mergeable_dicts:
+        if hasattr(overrides, dict_name):
+            getattr(config, dict_name).update(getattr(overrides, dict_name))
+    prompt_attributes = ["log_scan_prompt", "log_scan_review_prompt", "resolution_prompt"]
+    for prompt_name in prompt_attributes:
+        if hasattr(overrides, prompt_name):
+            setattr(config, prompt_name, getattr(overrides, prompt_name))
+    return config
+
+def load_config(config_file, overrides):
     try:
         if config_file.endswith(".py"):
             config_file = config_file[:-3]
         config = __import__(config_file)
+        if os.path.exists(overrides):
+            overrides_file = overrides[:-3] if overrides.endswith(".py") else overrides
+            overrides = __import__(overrides_file)
+            config = merge_configs(config, overrides)
     except ImportError as e:
         print(f"Error: Failed to import config file {config_file}")
         print(e)
@@ -491,10 +511,10 @@ def output_final_report(report, cost, suggestions_cost, output_file):
         with open(output_file, 'w') as file:
             file.write(final_report)
 
-def main(file, resolutions, dry_count, remove_duplicates, config_file, output_file):
+def main(file, resolutions, dry_count, remove_duplicates, config_file, output_file, show_log, overrides):
     file, output_file = check_file_args(file, output_file)
 
-    config = load_config(config_file)
+    config = load_config(config_file, overrides)
 
     log_contents = read_logfile(file, config.ignore_list, config.match_list, config.replacement_map, config.regex_ignore_list)
     if len(log_contents) == 0:
@@ -503,6 +523,9 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
 
     if remove_duplicates:
         log_contents = filter_duplicate_logs(log_contents, max_occurrences=3)
+
+    if show_log:
+        print("\n".join(log_contents))
 
     if dry_count:
         log_length, token_length = get_log_stats(log_contents)
@@ -527,5 +550,7 @@ if __name__ == "__main__":
     parser.add_argument("--dry-count", action="store_true", required=False, default=False)
     parser.add_argument("--remove-duplicates", action="store_true", required=False, default=True)
     parser.add_argument("--config-file", type=str, required=False, default="prompts")
+    parser.add_argument("--show-log", action="store_true", required=False, default=False)
+    parser.add_argument("--overrides", type=str, required=False, default="local_overrides.py")
     args = parser.parse_args()
-    main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file, args.output_file)
+    main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file, args.output_file, args.show_log, args.overrides)

@@ -51,16 +51,17 @@ You can use the tool by providing a syslog file as input. You can also pass vari
 
 ```bash
 export OPENAI_API_KEY=<your_openai_api_key>
-python main.py --file <path_to_syslog_file> [--resolutions]
+python main.py --file <path_to_syslog_file>
 ```
 
 - `--file`: Path to the syslog file you want to analyze. If omitted, the script will read from `stdin`.
 - `--output-file`: Path to the output file. If omitted, the script will write to `stdout`.
-- `--resolutions`: Include this flag to generate resolution suggestions for identified issues. Defaults to `True`.
+- `--resolutions`: Set this flag to false to skip generating resolution suggestions for identified issues. Defaults to `True`.
 - `--dry-count`: Include this flag to get a token count for the log file and exit.
-- `--remove-duplicates`: Include this flag to remove more than three copies of duplicate/similar log entries. Defaults to `True`.
+- `--remove-duplicates`: Set this flag to false to skip removing more than three copies of duplicate/similar log entries. Defaults to `True`.
+- `--show-log`: Set this flag to true to print the (filtered)log file to the console before processing it.
 - `--config-file`: Include this flag to use a custom config file - defaults to 'prompts' (ie, `prompts.py`).
-
+- `--overrides`: Include this flag to use a custom overrides file - defaults to 'local_overrides' (ie, `local_overrides.py`).
 ### Example
 
 ```bash
@@ -72,7 +73,7 @@ This will remove the bulk of duplicate log entries, analyze the remaining log fi
 To do a dry run and figure out how long your log data is, you can use the `--dry-count` flag:
 
 ```bash
-$ python main.py --file /var/log/syslog --dry-count
+$ python main.py --file /var/log/syslog --dry-count --show-log
 Length: 187 lines
 Tokens: 11341 tokens
 ```
@@ -97,6 +98,12 @@ $ python main.py --file /var/log/syslog --config-file prompts_ubuntu.py
 ```
 
 The format of the file should be the same as the default prompts.py file.
+
+You can also use a custom overrides file to override the default ignore/match lists and replacement map.  For example, if you wanted to add some additional things to ignore you could create a file called `local_overrides.py` with your overrides and then run the tool like this:
+
+```bash
+$ python main.py --file /var/log/syslog --overrides local_overrides.py
+```
 
 ## Usage (Docker)
 

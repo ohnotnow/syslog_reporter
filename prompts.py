@@ -9,10 +9,16 @@ ignore_list = [
     "'insightvm-",
     " insightvm-",
     "snapd.apparmor.service: Consumed",
+    " 50-motd-news",
 ]
 
 regex_ignore_list = [
     r"postfix.*insightvm-",
+    r'php.+already enabled',
+    r'systemd.+Consumed',
+    r'audit.+profile_replace',
+    r'snap.+firefox',
+    r'postfix.+ status=sent '
 ]
 
 match_list = [
