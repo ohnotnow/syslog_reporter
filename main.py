@@ -9,6 +9,45 @@ import tiktoken
 bot = gpt.GPTModelSync()
 bot.model = gpt.Model.GPT_4_OMNI_MINI.value[0]
 
+
+def normalize_log_line(line):
+    # Remove timestamp at the start
+    normalized_line = re.sub(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d+[+-]\d{2}:\d{2}', '', line)
+
+    # Remove process IDs in square brackets
+    normalized_line = re.sub(r'\[\d+\]', '[]', normalized_line)
+
+    # Handle specific patterns:
+    # 1. UFW BLOCK lines
+    if '[UFW BLOCK]' in normalized_line:
+        # Keep only the essential network info, normalize variable parts
+        parts = normalized_line.split()
+        normalized_line = ' '.join([
+            p for p in parts
+            if not any(p.startswith(prefix + '=')
+                      for prefix in ['ID', 'MAC', 'LEN', 'TTL'])
+        ])
+
+    # 2. Normalize service start/stop messages while preserving service type
+    normalized_line = re.sub(r'Starting (\S{2})\S*\.service', r'Starting \1_SERVICE', normalized_line)
+    normalized_line = re.sub(r'Finished (\S{2})\S*\.service', r'Finished \1_SERVICE', normalized_line)
+    normalized_line = re.sub(r'Started (\S{2})\S*\.service', r'Started \1_SERVICE', normalized_line)
+    normalized_line = re.sub(r'Deactivated (\S{2})\S*\.service', r'Deactivated \1_SERVICE', normalized_line)
+
+    # 3. Replace specific file paths and version numbers
+    normalized_line = re.sub(r'/usr/lib/php/\d+/', '/usr/lib/php/VERSION/', normalized_line)
+
+    # 4. Normalize remaining numbers that aren't part of identifiers
+    normalized_line = re.sub(r'\b\d+\b(?!\.so)', 'N', normalized_line)
+
+    # 5. Normalize IPv4 addresses
+    normalized_line = re.sub(r'\b(?:\d{1,3}\.){3}\d{1,3}\b', 'IP_ADDR', normalized_line)
+
+    # 6. Clean up multiple spaces
+    normalized_line = re.sub(r'\s+', ' ', normalized_line.strip())
+
+    return normalized_line
+
 def normalize_log_line(line):
     # Remove timestamps and device numbers to normalize the line
     normalized_line = re.sub(r'\b\d+\b', '', line)  # Remove any numbers (timestamps, device numbers, etc.)
@@ -28,7 +67,7 @@ def filter_duplicate_logs(log_lines, max_occurrences=3):
 
     return filtered_logs
 
-def read_logfile(file, ignore_list, match_list) -> list[str]:
+def read_logfile(file, ignore_list, match_list, replacement_map) -> list[str]:
     if file == sys.stdin:
         lines = file.read().splitlines()
     else:
@@ -42,7 +81,7 @@ def read_logfile(file, ignore_list, match_list) -> list[str]:
         lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
     if len(match_list) > 0:
         lines = [line for line in lines if any(match in line for match in match_list)]
-
+    lines = [line.replace(k, v) for k, v in replacement_map.items() for line in lines]
     return lines
 
 def scan_logfile(lines: list[str], log_scan_prompt: str, log_scan_review_prompt: str, line_chunk_size: int = 1000) -> tuple[str, float]:
@@ -143,7 +182,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
 
     config = load_config(config_file)
 
-    log_contents = read_logfile(file, config.ignore_list, config.match_list)
+    log_contents = read_logfile(file, config.ignore_list, config.match_list, config.replacement_map)
     if len(log_contents) == 0:
         print("No log entries found")
         return

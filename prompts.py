@@ -9,6 +9,11 @@ match_list = [
     # "nagios",
 ]
 
+replacement_map = {
+    "your-domain.com": "",
+    "some-other-sensitive-thing": "***",
+}
+
 log_scan_prompt = """
 # System Log Analysis Prompt
 
