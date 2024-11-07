@@ -3,6 +3,16 @@ ignore_list = [
     "unknown client",
     "vmmon: Hello",
     "USB disconnect",
+    "Loading profiles",
+    "Mounted snaps",
+    "UFW",
+    "'insightvm-",
+    " insightvm-",
+    "snapd.apparmor.service: Consumed",
+]
+
+regex_ignore_list = [
+    r"postfix.*insightvm-",
 ]
 
 match_list = [
