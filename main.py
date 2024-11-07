@@ -388,10 +388,10 @@ def read_logfile(file, ignore_list, match_list, replacement_map, regex_ignore_li
     lines = [line for line in lines if line.strip() != ""]
 
     if len(ignore_list) > 0:
-        print(f"Ignoring: {ignore_list}", file=sys.stderr)
+        # print(f"Ignoring: {ignore_list}", file=sys.stderr)
         lines = [line for line in lines if not any(ignore in line for ignore in ignore_list)]
     if len(regex_ignore_list) > 0:
-        print(f"Ignoring regex: {regex_ignore_list}", file=sys.stderr)
+        # print(f"Ignoring regex: {regex_ignore_list}", file=sys.stderr)
         lines = [line for line in lines if not any(re.search(ignore, line) for ignore in regex_ignore_list)]
     if len(match_list) > 0:
         lines = [line for line in lines if any(match in line for match in match_list)]
