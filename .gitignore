@@ -6,3 +6,5 @@ autogen.*
 test_*
 report_*
 local_overrides.py
+report*.md
+*.log

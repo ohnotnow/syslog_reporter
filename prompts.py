@@ -10,6 +10,10 @@ ignore_list = [
     " insightvm-",
     "snapd.apparmor.service: Consumed",
     " 50-motd-news",
+    "DHCPDISCOVER",
+    "DHCPOFFER",
+    "DHCPREQUEST",
+    "DHCPACK",
 ]
 
 regex_ignore_list = [
@@ -64,18 +68,23 @@ You are an AI assistant specializing in system log analysis. Your task is to ana
 ## Response Format
 
 - Use a clear, bullet-point format for your analysis
-- For each issue, structure your response as follows:
+- For each issue, structure your response in JSON as follows:
 
-```
-- Issue: [Brief title of the issue]
-  - Description: [Concise explanation of the problem]
-  - Example log entry: `[Exact copy of a relevant log entry]`
-  - Affected host(s): **[Hostname(s)]**
-  - Affected service: **[Service name]**
-  - Timestamp/Frequency: [When or how often the issue occurs]
-  - Potential impact: [Brief description of possible consequences]
-  - Recommended action: [Suggested next steps for investigation or resolution]
-```
+{
+    "issues": [
+        {
+            "issue": "[Brief title of the issue]",
+            "description": "[Concise explanation of the problem]",
+            "example_log_entry": "[Exact copy of a relevant log entry]",
+            "affected_host(s)": "[Hostname(s)]",
+            "affected_service": "[Service name]",
+            "timestamp/frequency": "[When or how often the issue occurs]",
+            "potential_impact": "[Brief description of possible consequences]",
+            "recommended_action": "[Suggested next steps for investigation or resolution]"
+        }
+    ],
+    ...
+}
 
 ## Important Notes
 
@@ -87,24 +96,46 @@ You are an AI assistant specializing in system log analysis. Your task is to ana
 Remember, specific examples and exact log entries are crucial for effective troubleshooting. Prioritize providing these details in your analysis.
 """
 
-log_scan_review_prompt = """
-You are an AI assistant specializing in system log analysis. The user will provide you with a list of issues identified by a reporting tool from their Linux system logs.
-Your task is to review the list of issues and remove any duplicates or merge the details of closely related issues (for instance,
-if there are two issues that are both related to the same service on different hosts, you should merge them into a single issue and
-note the hosts in the Affected host(s) section).
+log_merge_prompt = """
+You will be given a list of Linux issues and the affected hosts.  Your task is to review the list and
+return a JSON object with a series of issue ID's which refer to the same underlying issue and can be merged together.
 
-You MUST retain the original log issues in the exact format they were provided in - allowing for minimal changes to the text if
-you are merging the details of closely related issues.  For reference, the format required is :
-
+Example Input:
 ```
-- Issue: [Brief title of the issue]
-  - Description: [Concise explanation of the problem]
-  - Example log entry: `[Exact copy of a relevant log entry]`
-  - Affected host(s): **[Hostname(s)]**
-  - Affected service: **[Service name]**
-  - Timestamp/Frequency: [When or how often the issue occurs]
-  - Potential impact: [Brief description of possible consequences]
-  - Recommended action: [Suggested next steps for investigation or resolution]
+{
+    "issue_1": {
+       "description": "Several hosts are timing out during Nagios checks, indicating potential connectivity issues or service unavailability.",
+       "affected_host(s)": "**moody**",
+       "example_log_entry": "Warning: Check of host 'moody.example.com' timed out after 30.00 seconds",
+       "affected_service": "nagios",
+    },
+    "issue_2": {
+        "description": "Hosts are reporting critical ping failures with 100% packet loss.",
+        "affected_host(s)": "**brolly**",
+        "example_log_entry": "Nov  8 00:00:00 puppet nagios: CURRENT HOST STATE: brolly.example.com;DOWN;HARD;10;PING CRITICAL - Packet loss = 100%",
+        "affected_service": "Nagios Monitoring",
+    },
+    "issue_3": {
+        "description": "SELinux is preventing certain operations due to permission issues on various hosts.",
+        "affected_host(s)": "**little**",
+        "example_log_entry": "SELinux is preventing some-command from execmem (use --p=execmem for partial execution) (18446744073709551615 enforcement) possible cause=unconfined_domain",
+        "affected_service": "SELinux",
+    },
+    ...
+}
+```
+
+Example Output:
+```
+{
+    "merged_issues": [
+        {
+            "issue_ids": ["issue_1", "issue_2"],
+            "affected_host(s)": "**moody**, **brolly**",
+        },
+        ...
+    ]
+}
 ```
 """
 
@@ -151,6 +182,8 @@ Prevent: [Brief prevention tip, if applicable]
 - Omit general advice; focus on issue-specific information
 - The primary Linux system in use is CentOS or Rocky Linux, so use their syntax and conventions unless it is clear that the system is
 an alternative such as Ubuntu or Debian.
+- Issues can often have simple causes - don't over-engineer the solution.  For instance if a host is timing out when a check
+from Nagios is run, it might just be that the host is switched off but someone forgot to update the nagios checks!
 
 Remember, brevity is key. Provide only what an expert sysadmin needs to quickly address the issue.
 """

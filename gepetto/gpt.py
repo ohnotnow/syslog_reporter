@@ -43,7 +43,7 @@ class GPTModel():
             return round(token_price_input * token_count, 4)
         return round(token_price_output * token_count, 4)
 
-    async def chat(self, messages, temperature=1.0, model=None, top_p=0.6):
+    async def chat(self, messages, temperature=1.0, model=None, top_p=0.6, json_format=False):
         """Chat with the model.
 
         Args:
@@ -57,6 +57,10 @@ class GPTModel():
         """
         if model is None:
             model = self.model
+        if json_format:
+            format = {"type": "json_object"}
+        else:
+            format = {"type": "text"}
         api_key = os.getenv("OPENAI_API_KEY")
         api_base = "https://api.openai.com/v1/"
         client = OpenAI(api_key=api_key, base_url=api_base)
@@ -65,6 +69,7 @@ class GPTModel():
             messages=messages,
             temperature=temperature,
             top_p=top_p,
+            response_format=format,
         )
         # print(str(response.choices[0].message))
         input_tokens = response.usage.prompt_tokens
@@ -118,7 +123,7 @@ class GPTModelSync():
             return round(token_price_input * token_count, 4)
         return round(token_price_output * token_count, 4)
 
-    def chat(self, messages, temperature=1.0, model=None, top_p=1.0):
+    def chat(self, messages, temperature=1.0, model=None, top_p=1.0, json_format=False):
         """Chat with the model.
 
         Args:
@@ -132,6 +137,11 @@ class GPTModelSync():
         """
         if model is None:
             model = self.model
+        if json_format:
+            format = {"type": "json_object"}
+        else:
+            format = {"type": "text"}
+
         api_key = os.getenv("OPENAI_API_KEY")
         api_base = "https://api.openai.com/v1/"
         client = OpenAI(api_key=api_key, base_url=api_base)
