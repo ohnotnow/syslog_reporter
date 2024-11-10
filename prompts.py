@@ -1,5 +1,6 @@
 ignore_list = [
     "arpwatch: bogon",
+    "rpfilter_DROP",
     "unknown client",
     "vmmon: Hello",
     "USB disconnect",
@@ -75,7 +76,7 @@ You are an AI assistant specializing in system log analysis. Your task is to ana
         {
             "issue": "[Brief title of the issue]",
             "description": "[Concise explanation of the problem]",
-            "example_log_entry": "[Exact copy of a relevant log entry]",
+            "example_log_entry": "[Exact copy of a relevant log entry - escaped for JSON]",
             "affected_host(s)": "[Hostname(s)]",
             "affected_service": "[Service name]",
             "timestamp/frequency": "[When or how often the issue occurs]",
@@ -158,9 +159,11 @@ For each issue, structure your response as follows:
 ```
 ### [Issue Title]
 
-Root Cause: [One-sentence analysis]
+**Root Cause:** [One-sentence analysis]
 
-Fix:
+**Investigate:** `[Single most useful investigation command]`
+
+**Fix:**
 1. [Concise step]
 2. [Concise step]
    ```
@@ -168,9 +171,7 @@ Fix:
    ```
 3. [Concise step]
 
-Investigate: `[Single most useful investigation command]`
-
-Prevent: [Brief prevention tip, if applicable]
+**Prevent:** [Brief prevention tip, if applicable]
 ```
 
 ## Guidelines:
@@ -182,8 +183,9 @@ Prevent: [Brief prevention tip, if applicable]
 - Omit general advice; focus on issue-specific information
 - The primary Linux system in use is CentOS or Rocky Linux, so use their syntax and conventions unless it is clear that the system is
 an alternative such as Ubuntu or Debian.
-- Issues can often have simple causes - don't over-engineer the solution.  For instance if a host is timing out when a check
-from Nagios is run, it might just be that the host is switched off but someone forgot to update the nagios checks!
+- Issues often have simple causes - don't over-engineer the solution.  For instance if a host is timing out when a check
+from a monitoring service is run, it might just be that the host is switched off but someone forgot to update the monitoring
+list!
 
 Remember, brevity is key. Provide only what an expert sysadmin needs to quickly address the issue.
 """
