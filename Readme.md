@@ -62,6 +62,8 @@ python main.py --file <path_to_syslog_file>
 - `--show-log`: Set this flag to true to print the (filtered)log file to the console before processing it.
 - `--config-file`: Include this flag to use a custom config file - defaults to 'prompts' (ie, `prompts.py`).
 - `--overrides`: Include this flag to use a custom overrides file - defaults to 'local_overrides' (ie, `local_overrides.py`).
+- `--suggestion-model`: Include this flag to use a specific model of issue resolution suggestions - defaults to `gpt-4o-mini`.
+- `--issue-model`: Include this flag to use a specific model of issue identification - defaults to `gpt-4o-mini`.
 ### Example
 
 ```bash
