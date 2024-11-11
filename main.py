@@ -9,8 +9,9 @@ import argparse
 import sys
 import tiktoken
 import logreader
-bot = gpt.GPTModelSync()
-bot.model = gpt.Model.GPT_4_OMNI_MINI.value[0]
+import classifier
+
+bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
 
 def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, line_chunk_size: int = 1000, model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[list[dict], float]:
     chunks = [lines[i:i+line_chunk_size] for i in range(0, len(lines), line_chunk_size)]
@@ -208,6 +209,10 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         log_length, token_length = get_log_stats(log_contents, issue_model)
         print(f"Length: {log_length} lines")
         print(f"Tokens: {token_length} tokens")
+        # for line in log_contents:
+        #     response = classifier.classify_log_line(line, bot)
+        #     print(response.message)
+        #     print(response.cost)
         return
 
     issues, cost = scan_logfile(log_contents, config.log_scan_prompt, config.log_merge_prompt, model=issue_model)
@@ -224,6 +229,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
     end_time = time.time()
     total_time = end_time - start_time
     output_final_report(report, cost, suggestions_cost, output_file, len(log_contents), used_model, total_time)
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--file", type=str, required=False, default="")
