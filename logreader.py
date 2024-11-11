@@ -2,7 +2,14 @@ import re
 import sys
 from collections import defaultdict
 
-def normalize_log_line(line):
+def normalize_log_line(line, normalise_map):
+    normalized_line = line
+
+    # Normalise the line using the local normalise_map - return early if a match/replacement is done
+    for pattern, replacement in normalise_map:
+        if re.search(pattern, normalized_line):
+            return replacement
+
     # Remove timestamps at the start - handles both traditional syslog and systemd journal formats
     normalized_line = re.sub(
         r'^(?:\w{3}\s+\d+\s+\d{2}:\d{2}:\d{2}|'
@@ -56,71 +63,6 @@ def normalize_log_line(line):
         # Simplify message
         normalized_line = f'{hostname} Docker daemon network stats'
         return normalized_line  # Return early
-
-    # 3. Pulseaudio segfault messages
-    if 'pulseaudio' in normalized_line and 'segfault' in normalized_line:
-        normalized_line = re.sub(
-            r'pulseaudio.+',
-            'pulseaudio segfault',
-            normalized_line
-        )
-
-    if re.search(r'setroubleshoot.+SELinux', normalized_line):
-        normalized_line = "setroubleshoot: SELinux"
-
-    if "gnome" in normalized_line and "DBusError" in normalized_line:
-        normalized_line = "gnome-shell DBusError"
-
-    if re.search(r'CCMP.+REPLAY', normalized_line):
-        normalized_line = "CCMP_REPLAY"
-
-    if re.search(r'BA.+FLUSH', normalized_line):
-        normalized_line = "BA_FLUSH"
-
-    if re.search(r'FLUSH.+DEAUTH', normalized_line):
-        normalized_line = "FLUSH_DEAUTH"
-
-    if re.search(r'service=registry', normalized_line):
-        normalized_line = "docker service=registry"
-
-    if re.search(r'snap-store.+not handling', normalized_line):
-        normalized_line = "snap-store not handling"
-
-    if re.search(r'acvpndownloader_major', normalized_line):
-        normalized_line = "acvpndownloader_major"
-
-    if re.search(r'acvpndownloader_minor', normalized_line):
-        normalized_line = "acvpndownloader_minor"
-
-    if re.search(r'xrdp', normalized_line):
-        normalized_line = "xrdp"
-
-    if re.search(r'puppet-agent.+(Could not|Failed|Unable|failed)', normalized_line):
-        normalized_line = "puppet-agent Error"
-
-    if re.search(r'InRelease', normalized_line):
-        normalized_line = "InRelease Error"
-
-    if re.search(r'audit:.+DENIED', normalized_line):
-        normalized_line = "audit DENIED"
-
-    if re.search(r'(acvpnui|acwebhelper|acvpndownloader|acvpnagent)', normalized_line):
-        normalized_line = "acvpnui (CISCO VPN)"
-
-    if re.search(r'puppet.+ensure changed.+corrective', normalized_line):
-        normalized_line = "puppet ensure changed corrective"
-
-    if re.search(r'snap.+store.+error', normalized_line):
-        normalized_line = "snap-store not handling error"
-
-    if "systemd" in normalized_line and re.match(r'run.docker.runtime', normalized_line) and "Succeeded" in normalized_line:
-        normalized_line = "systemd run-docker-runtime Succeeded"
-
-    if "Started snap" in normalized_line:
-        normalized_line = "Started snap"
-
-    if re.search(r'snap.canonical.*Succeeded', normalized_line):
-        normalized_line = "snap.canonical Succeeded"
 
     # 4. AppArmor audit logs
     if 'apparmor="STATUS"' in normalized_line:
@@ -284,12 +226,12 @@ def normalize_log_line(line):
     # Return the normalized line with the hostname
     return f'{hostname} {normalized_line}'
 
-def filter_duplicate_logs(log_lines, max_occurrences=3):
+def filter_duplicate_logs(log_lines, max_occurrences=3, normalise_map=[]):
     occurrence_dict = defaultdict(int)
     filtered_logs = []
 
     for line in log_lines:
-        normalized_line = normalize_log_line(line)
+        normalized_line = normalize_log_line(line, normalise_map)
 
         if occurrence_dict[normalized_line] < max_occurrences:
             filtered_logs.append(line)

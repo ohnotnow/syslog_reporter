@@ -145,7 +145,7 @@ def check_file_args(file, output_file):
     return file, output_file
 
 def merge_configs(config, overrides):
-    mergable_lists = ["ignore_list", "match_list", "regex_ignore_list"]
+    mergable_lists = ["ignore_list", "match_list", "regex_ignore_list", "normalise_map"]
     for list_name in mergable_lists:
         if hasattr(overrides, list_name):
             setattr(config, list_name, list(set(getattr(config, list_name) + getattr(overrides, list_name))))
@@ -199,7 +199,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         return
 
     if remove_duplicates:
-        log_contents = logreader.filter_duplicate_logs(log_contents, max_occurrences=3)
+        log_contents = logreader.filter_duplicate_logs(log_contents, max_occurrences=3, normalise_map=config.normalise_map)
 
     if show_log:
         print("\n".join(log_contents))

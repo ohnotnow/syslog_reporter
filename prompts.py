@@ -1,3 +1,4 @@
+# skip any log lines containing these strings
 ignore_list = [
     "arpwatch: bogon",
     "rpfilter_DROP",
@@ -17,6 +18,7 @@ ignore_list = [
     "DHCPACK",
 ]
 
+# skip any log lines matching these regex patterns
 regex_ignore_list = [
     r"postfix.*insightvm-",
     r'php.+already enabled',
@@ -26,14 +28,23 @@ regex_ignore_list = [
     r'postfix.+ status=sent '
 ]
 
+# include any log lines matching these strings patterns
 match_list = [
     # "nagios",
 ]
 
+# replace any text in log lines matching these strings with the replacement string
 replacement_map = {
     "your-domain.com": "",
     "some-other-sensitive-thing": "***",
 }
+
+# replace any log lines matching these regex patterns with the replacement string
+normalise_map = [
+    (r"snap.+store.+error", "snap-store error"),
+    (r"Started snap", "Started snap"),
+    (r"snap.canonical.*Succeeded", "snap.canonical Succeeded"),
+]
 
 log_scan_prompt = """
 # System Log Analysis Prompt
