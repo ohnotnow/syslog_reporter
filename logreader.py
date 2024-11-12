@@ -1,5 +1,6 @@
 import re
 import sys
+import io
 from collections import defaultdict
 
 def normalize_log_line(line, normalise_map):
@@ -246,9 +247,10 @@ def filter_duplicate_logs(log_lines, max_occurrences=3, normalise_map=[]):
 
 def read_logfile(file, ignore_list, match_list, replacement_map, regex_ignore_list = []) -> list[str]:
     if file == sys.stdin:
-        lines = file.read().splitlines()
+        stdin_wrapper = io.TextIOWrapper(sys.stdin.buffer, encoding="utf8", errors='ignore')
+        lines = stdin_wrapper.read().splitlines()
     else:
-        with open(file, 'r') as f:
+        with open(file, 'r', encoding="utf8", errors='ignore') as f:
             lines = f.read().splitlines()
 
     # Remove empty lines
