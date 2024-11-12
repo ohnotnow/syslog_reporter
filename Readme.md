@@ -170,7 +170,6 @@ ignore_list = [
 You can also set it only match certain things, by adding to the `match_list` variable.
 ```python
 match_list = [
-    "kernel",
     "nagios",
     "dhcpd",
 ]
@@ -198,6 +197,12 @@ You'll get output like the following for each line:
     "category": "warning"
 }
 ```
+Once you've added some strings/regexes to the prompts.py or local_overrides.py you can run something like this to see what's still coming through without hitting the LLM API:
+
+```bash
+python main.py --file=system.log --dry-count --show-log
+```
+Which will show you the remaining lines that haven't been filtered out and how many lines and tokens that is.
 
 ## Notes
 
