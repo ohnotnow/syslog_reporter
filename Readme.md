@@ -156,8 +156,7 @@ Please note that actual costs and processing times may vary depending on the spe
 ## Filtering logs
 
 As syslogs can fill up with repeated noise that's of no interest, you can save a lot of time and money by
-filtering out common things you're not interested in.  At the top of `prompts.py` you'll see a list of things to ignore.
-Feel free to modify this list to your liking.
+filtering out common things you're not interested in.  There are various filters in `logreader.py` you can modify to your liking.  For example, to entirely ignore lines containing specific strings you can modify the `ignore_list` variable:
 
 ```python
 ignore_list = [
@@ -177,6 +176,28 @@ match_list = [
 ]
 ```
 This can be useful if you only want to report on certain things and report them to a specific person or team.  Using the `--config-file` flag you could use a custom config file for each person/team.
+
+### Addtional filtering
+
+There is also a helper script `classifier.py` that can be used to classify log lines into one of 10 categories.  It's not perfect, but it can be useful for filtering and getting and sense of what's in your logs and what you might want to ignore.
+
+Eg, to take 20 random lines from a log file and classify them:
+
+```bash
+cat system.log | shuf | tail -20 | python classifier.py
+```
+
+You'll get output like the following for each line:
+
+```json
+{
+    "importance": 5,
+    "reason": "The log entry indicates a service check using Nagios for which the service is reported as '(null)', potentially indicating an issue with monitoring that could lead to unnoticed service failures.",
+    "original_line": "Nov  8 11:10:08 server1 nagios: wproc:   host=client.example.com; service=(null);",
+    "suggested_regex": "nagios:.+service=\(null\)",
+    "category": "warning"
+}
+```
 
 ## Notes
 

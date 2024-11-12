@@ -30,12 +30,12 @@ Additional guidelines:
 """
 
 def classify_log_line(line: str, bot: gpt.GPTModelSync) -> response.ChatResponse:
-    response = bot.chat(messages=[{"role": "user", "content": system_prompt.format(line=line)}], json_format=True)
-    return response
+    llm_response = bot.chat(messages=[{"role": "user", "content": system_prompt.format(line=line)}], json_format=True)
+    return llm_response
 
 if __name__ == "__main__":
-    bot = gpt.GPTModelSync(model=gpt.GPTModel.GPT_4O_MINI.value[0])
+    bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
     # read from stdin
     for line in sys.stdin:
-        response = classify_log_line(line, bot)
-        print(response.message)
+        chat_response = classify_log_line(line, bot)
+        print(chat_response.message)
