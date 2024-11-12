@@ -92,6 +92,7 @@ $ python main.py --file /var/log/syslog --remove-duplicates=false
 Length: 187 lines
 Tokens: 11341 tokens
 ```
+See the section on [filtering logs](#filtering-logs) for more on how to filter out common noise.  This can save you a lot of time and money in API costs.  Our raw syslog files are often in the 2million line range, and after filtering out noise and repitition we're often left with only 10k lines to process.
 
 You can also use a custom config file to override the default prompts.  For example, if you wanted to use a different set of prompts for Ubuntu you could create a file called `prompts_ubuntu.py` with your overrides and then run the tool like this:
 
