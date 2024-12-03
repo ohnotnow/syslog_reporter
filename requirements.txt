@@ -3,3 +3,4 @@ groq
 anthropic
 yaspin
 tiktoken
+google-generativeai

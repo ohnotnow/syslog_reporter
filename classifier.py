@@ -1,6 +1,8 @@
 import sys
+import json
 from gepetto import gpt, response
-
+import logreader
+from windows_overrides import ignore_list, match_list, replacement_map, regex_ignore_list
 system_prompt = """
 Analyze this system log entry and respond in JSON format with the following:
 1. importance: Rate importance from 0-10 where:
@@ -35,7 +37,18 @@ def classify_log_line(line: str, bot: gpt.GPTModelSync) -> response.ChatResponse
 
 if __name__ == "__main__":
     bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
-    # read from stdin
-    for line in sys.stdin:
+
+    lines = logreader.read_logfile(sys.stdin, ignore_list, match_list, replacement_map, regex_ignore_list)
+    noise_regex = []
+    for line in lines:
         chat_response = classify_log_line(line, bot)
         print(chat_response.message)
+        message = chat_response.message.replace("```json", "").replace('```', '').strip()
+        try:
+            decoded = json.loads(message)
+            if decoded["category"] == "noise":
+                noise_regex.append(decoded["suggested_regex"])
+        except json.JSONDecodeError:
+            print(f"Boo", file=sys.stderr)
+    for reg in noise_regex:
+        print(f"r'{reg}'")

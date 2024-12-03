@@ -1,4 +1,4 @@
-from gepetto import gpt
+from gepetto import gpt, gemini
 from datetime import datetime
 import time
 import re
@@ -12,6 +12,7 @@ import logreader
 import classifier
 
 bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
+# bot = gemini.GeminiModelSync()
 
 def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, line_chunk_size: int = 1000, model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[list[dict], float]:
     chunks = [lines[i:i+line_chunk_size] for i in range(0, len(lines), line_chunk_size)]
@@ -38,10 +39,16 @@ def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, 
         message = response.message.removeprefix("```json").removeprefix("```").removesuffix("```")
         # sometimes the LLM will either return gibberish, or fail to escape the JSON properly
         # so we ignore for now
+        # write the message to a file then read it back in ignoring any utf-8 errors
+        with open("temp_log_scan_output.txt", "w") as f:
+            f.write(message)
+        with open("temp_log_scan_output.txt", "r", encoding="utf-8", errors="ignore") as f:
+            message = f.read()
+            message = message.removeprefix("```json").removeprefix("```").replace("```", "") # do this a 2nd time for LLM reasons :-/
         try:
             issues.extend(json.loads(message)["issues"])
-        except json.JSONDecodeError:
-            print(f"Error: Failed to parse JSON from response: {message}", file=sys.stderr)
+        except json.JSONDecodeError as e:
+            print(f"Error: Failed to parse JSON from response: {message}\n\n{e}", file=sys.stderr)
         total_cost += response.cost
     if len(chunks) > 1 and len(report) < 50000:
         json_issues = {}
