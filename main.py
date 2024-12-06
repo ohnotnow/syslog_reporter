@@ -182,9 +182,8 @@ def load_config(config_file, overrides):
         sys.exit(1)
     return config
 
-def output_final_report(report, cost, suggestions_cost, output_file, log_length, model, total_time):
+def output_final_report(report, cost, suggestions_cost, output_file, log_length, model, total_time, number_of_issues):
     today_string = datetime.now().strftime("%Y-%m-%d")
-    number_of_issues = len(report.split("\n- Issue:")[1:])
     seconds = round(total_time % 60)
     minutes = round((total_time // 60) % 60)
     final_report = f"# Log Report @ {today_string} ({number_of_issues} issues)\n\n{report}\n\n"
@@ -235,7 +234,7 @@ def main(file, resolutions, dry_count, remove_duplicates, config_file, output_fi
         used_model = issue_model
     end_time = time.time()
     total_time = end_time - start_time
-    output_final_report(report, cost, suggestions_cost, output_file, len(log_contents), used_model, total_time)
+    output_final_report(report, cost, suggestions_cost, output_file, len(log_contents), used_model, total_time, len(issues))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
@@ -248,6 +247,6 @@ if __name__ == "__main__":
     parser.add_argument("--show-log", action="store_true", required=False, default=False)
     parser.add_argument("--overrides", type=str, required=False, default="local_overrides.py")
     parser.add_argument("--issue-model", type=str, required=False, default=gpt.Model.GPT_4_OMNI_MINI.value[0])
-    parser.add_argument("--suggestion-model", type=str, required=False, default=gpt.Model.GPT_4_OMNI_MINI.value[0])
+    parser.add_argument("--suggestion-model", type=str, required=False, default=gpt.Model.GPT_4_OMNI_1120.value[0])
     args = parser.parse_args()
     main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file, args.output_file, args.show_log, args.overrides, args.issue_model, args.suggestion_model)

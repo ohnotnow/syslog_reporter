@@ -9,6 +9,7 @@ class Model(Enum):
     GPT_4_1106_PREVIEW = ('gpt-4-1106-preview', 0.01, 0.03)
     GPT_4_TURBO = ('gpt-4-turbo', 0.01, 0.03)
     GPT_4_OMNI_MINI = ('gpt-4o-mini', 0.000150, 0.000075)
+    GPT_4_OMNI_1120 = ('gpt-4o-2024-11-20', 0.00250, 0.01)
     GPT_4_OMNI_0806 = ('gpt-4o-2024-08-06', 0.00250, 0.01)
     GPT_4_OMNI = ('gpt-4o', 0.005, 0.015)
     GPT4 = ('gpt-4', 0.06, 0.12)

@@ -46,9 +46,9 @@ if __name__ == "__main__":
         message = chat_response.message.replace("```json", "").replace('```', '').strip()
         try:
             decoded = json.loads(message)
-            if decoded["category"] == "noise":
+            if (decoded["category"] == "noise" or decoded["importance"] < 3) and decoded["suggested_regex"]:
                 noise_regex.append(decoded["suggested_regex"])
         except json.JSONDecodeError:
             print(f"Boo", file=sys.stderr)
     for reg in noise_regex:
-        print(f"r'{reg}'")
+        print(f"    r'{reg}',")
