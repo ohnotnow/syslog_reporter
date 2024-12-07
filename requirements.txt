@@ -4,3 +4,4 @@ anthropic
 yaspin
 tiktoken
 google-generativeai
+pydantic-ai

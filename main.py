@@ -1,5 +1,8 @@
 from gepetto import gpt, gemini
+from pydantic_ai import Agent, RunContext
+from pydantic import BaseModel
 from datetime import datetime
+import costing
 import time
 import re
 import os
@@ -10,46 +13,46 @@ import sys
 import tiktoken
 import logreader
 import classifier
-
 bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
 # bot = gemini.GeminiModelSync()
+
+class Issue(BaseModel):
+    issue: str
+    description: str
+    example_log_entry: str
+    affected_hosts: str
+    affected_service: str
+    timestamp_frequency: str
+    potential_impact: str
+    recommended_action: str
+
+class MergedIssue(BaseModel):
+    issue_ids: list[str]
+    affected_hosts: str
+class IssueList(BaseModel):
+    issues: list[Issue]
 
 def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, line_chunk_size: int = 1000, model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[list[dict], float]:
     chunks = [lines[i:i+line_chunk_size] for i in range(0, len(lines), line_chunk_size)]
     if len(chunks) > 1:
         print(f"Long log file - splitting into {len(chunks)} chunks", file=sys.stderr)
+    if not model.startswith("openai:"):
+        model = f"openai:{model}"
     report = ""
     total_cost = 0
     issues = []
     final_issues = {}
+    syslog_agent = Agent(
+        model=model,
+        result_type=IssueList,
+        system_prompt=log_scan_prompt,
+    )
     for chunk in chunks:
         content = "\n".join(chunk)
-
-        messages = [
-            {
-                "role": "system",
-                "content": log_scan_prompt
-            },
-            {
-                "role": "user",
-                "content": content
-            }
-        ]
-        response = bot.chat(messages, model=model, temperature=0.1, json_format=True)
-        message = response.message.removeprefix("```json").removeprefix("```").removesuffix("```")
-        # sometimes the LLM will either return gibberish, or fail to escape the JSON properly
-        # so we ignore for now
-        # write the message to a file then read it back in ignoring any utf-8 errors
-        with open("temp_log_scan_output.txt", "w") as f:
-            f.write(message)
-        with open("temp_log_scan_output.txt", "r", encoding="utf-8", errors="ignore") as f:
-            message = f.read()
-            message = message.removeprefix("```json").removeprefix("```").replace("```", "") # do this a 2nd time for LLM reasons :-/
-        try:
-            issues.extend(json.loads(message)["issues"])
-        except json.JSONDecodeError as e:
-            print(f"Error: Failed to parse JSON from response: {message}\n\n{e}", file=sys.stderr)
-        total_cost += response.cost
+        response = syslog_agent.run_sync(content)
+        issues.extend(response.data.issues)
+        cost = costing.get_cost(model, response.cost())
+        total_cost += cost
     if len(chunks) > 1 and len(report) < 50000:
         json_issues = {}
         for id, issue in enumerate(issues):
@@ -59,20 +62,14 @@ def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, 
                 "example_log_entry": issue["example_log_entry"],
                 "affected_service": issue["affected_service"],
             }
-        messages = [
-            {
-                "role": "system",
-                "content": log_merge_prompt
-            },
-            {
-                "role": "user",
-                "content": json.dumps(json_issues, indent=4)
-            }
-        ]
-        response = bot.chat(messages, model=model, temperature=0.1, json_format=True)
-        message = response.message.removeprefix("```json").removeprefix("```").removesuffix("```")
-        merged_issues = json.loads(message)["merged_issues"]
-        total_cost += response.cost
+        merge_agent = Agent(
+            model=model,
+            result_type=MergedIssue,
+            system_prompt=log_merge_prompt,
+        )
+        merged_issues = merge_agent.run_sync(json.dumps(json_issues)).data.merged_issues
+        cost = costing.get_cost(model, response.cost())
+        total_cost += cost
         # first we need to copy the issues (a list) into the final_issues dict
         for issue_id, issue in enumerate(issues):
             final_issues[f"issue_{issue_id + 1}"] = issue
@@ -94,14 +91,14 @@ def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, 
     return final_issues, total_cost
 
 def issue_to_report(issue: dict) -> str:
-    report = f"- Issue: {issue['issue']}\n"
-    report += f"  - Description: {issue['description']}\n"
-    report += f"  - Example log entry: {issue['example_log_entry']}\n"
-    report += f"  - Affected host(s): {issue['affected_host(s)']}\n"
-    report += f"  - Affected service: {issue['affected_service']}\n"
-    report += f"  - Timestamp/Frequency: {issue['timestamp/frequency']}\n"
-    report += f"  - Potential impact: {issue['potential_impact']}\n"
-    report += f"  - Recommended action: {issue['recommended_action']}\n\n"
+    report = f"- Issue: {issue.issue}\n"
+    report += f"  - Description: {issue.description}\n"
+    report += f"  - Example log entry: {issue.example_log_entry}\n"
+    report += f"  - Affected host(s): {issue.affected_hosts}\n"
+    report += f"  - Affected service: {issue.affected_service}\n"
+    report += f"  - Timestamp/Frequency: {issue.timestamp_frequency}\n"
+    report += f"  - Potential impact: {issue.potential_impact}\n"
+    report += f"  - Recommended action: {issue.recommended_action}\n\n"
     return report
 
 def issues_list_to_report(issues: dict) -> str:
@@ -113,21 +110,16 @@ def issues_list_to_report(issues: dict) -> str:
 def get_resolution(issue: dict, resolution_prompt: str, suggestion_model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[str, float]:
     # clear the original LLM recommendation so that this call can come up with it's own
     # rather than just spelling out a plan based on the original recommendation
-    issue['recommended_action'] = ""
-    messages = [
-        {
-            "role": "system",
-            "content": resolution_prompt
-        },
-        {
-            "role": "user",
-            "content": issue_to_report(issue)
-        }
-    ]
-    response = bot.chat(messages, model=suggestion_model, temperature=0.1)
-    suggestion = response.message.removesuffix('```').removeprefix('```json`').removeprefix('```')
-
-    return suggestion, response.cost
+    if not suggestion_model.startswith("openai:"):
+        suggestion_model = f"openai:{suggestion_model}"
+    issue.recommended_action = ""
+    resolution_agent = Agent(
+        model=suggestion_model,
+        result_type=str,
+    )
+    response = resolution_agent.run_sync(f"{resolution_prompt}\n\n{issue_to_report(issue)}")
+    cost = costing.get_cost(suggestion_model, response.cost())
+    return response.data, cost
 
 def resolutions_to_report(issues: list[dict], resolution_prompt: str, suggestion_model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[str, float]:
     report = ""
@@ -246,7 +238,7 @@ if __name__ == "__main__":
     parser.add_argument("--config-file", type=str, required=False, default="prompts")
     parser.add_argument("--show-log", action="store_true", required=False, default=False)
     parser.add_argument("--overrides", type=str, required=False, default="local_overrides.py")
-    parser.add_argument("--issue-model", type=str, required=False, default=gpt.Model.GPT_4_OMNI_MINI.value[0])
-    parser.add_argument("--suggestion-model", type=str, required=False, default=gpt.Model.GPT_4_OMNI_1120.value[0])
+    parser.add_argument("--issue-model", type=str, required=False, default=f"openai:{gpt.Model.GPT_4_OMNI_MINI.value[0]}")
+    parser.add_argument("--suggestion-model", type=str, required=False, default=f"openai:{gpt.Model.GPT_4_OMNI_1120.value[0]}")
     args = parser.parse_args()
     main(args.file, args.resolutions, args.dry_count, args.remove_duplicates, args.config_file, args.output_file, args.show_log, args.overrides, args.issue_model, args.suggestion_model)
