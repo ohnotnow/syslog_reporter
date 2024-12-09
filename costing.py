@@ -1,68 +1,35 @@
 from pydantic import BaseModel
 from pydantic_ai.result import Cost
 from typing import Dict, Optional
-
+import json
+import sys
 class Pricing(BaseModel):
     """
     Encapsulates the pricing information for a specific model.
     """
+    model_name: str
     input_cost_per_1M: float  # Cost per 1M input tokens
     output_cost_per_1M: float  # Cost per 1M output tokens
     cached_cost_per_1M: Optional[float] = 0.0  # Cost per 1M cached tokens (if applicable)
 
-# Mapping of model names to their pricing details
-MODEL_PRICING = {
-    'gpt-4o': Pricing(
-        input_cost_per_1M=2.50,
-        output_cost_per_1M=10.00,
-        cached_cost_per_1M=1.25
-    ),
-    'gpt-4o-2024-11-20': Pricing(
-        input_cost_per_1M=2.50,
-        output_cost_per_1M=10.00,
-        cached_cost_per_1M=1.25
-    ),
-    'gpt-4o-2024-08-06': Pricing(
-        input_cost_per_1M=2.50,
-        output_cost_per_1M=10.00,
-        cached_cost_per_1M=1.25
-    ),
-    'gpt-4o-2024-05-13': Pricing(
-        input_cost_per_1M=5.00,
-        output_cost_per_1M=15.00,
-        cached_cost_per_1M=2.50
-    ),
-    'gpt-4o-mini': Pricing(
-        input_cost_per_1M=0.150,
-        output_cost_per_1M=0.600,
-        cached_cost_per_1M=0.075
-    ),
-    'gpt-4o-mini-2024-07-18': Pricing(
-        input_cost_per_1M=0.150,
-        output_cost_per_1M=0.600,
-        cached_cost_per_1M=0.075
-    ),
-    'o1-preview': Pricing(
-        input_cost_per_1M=15.00,
-        output_cost_per_1M=60.00,
-        cached_cost_per_1M=7.50
-    ),
-    'o1-preview-2024-09-12': Pricing(
-        input_cost_per_1M=15.00,
-        output_cost_per_1M=60.00,
-        cached_cost_per_1M=7.50
-    ),
-    'o1-mini': Pricing(
-        input_cost_per_1M=3.00,
-        output_cost_per_1M=12.00,
-        cached_cost_per_1M=1.50
-    ),
-    'o1-mini-2024-09-12': Pricing(
-        input_cost_per_1M=3.00,
-        output_cost_per_1M=12.00,
-        cached_cost_per_1M=1.50
-    )
-}
+def get_model_pricing():
+    model_pricing = {}
+    # model_prices.json is from https://github.com/AgentOps-AI/tokencost/blob/main/tokencost/model_prices.json
+    with open('model_prices.json', 'r') as file:
+        model_prices = json.load(file)
+        for model_name, model_info in model_prices.items():
+            if model_info.get('mode') != 'chat':
+                continue
+            model_has_required_keys = all(key in model_info for key in ['input_cost_per_token', 'output_cost_per_token'])
+            if not model_has_required_keys:
+                continue
+            model_pricing[model_name] = Pricing(
+                model_name=model_name,
+                input_cost_per_1M=model_info['input_cost_per_token'] * 1_000_000,
+                output_cost_per_1M=model_info['output_cost_per_token'] * 1_000_000,
+                cached_cost_per_1M=model_info.get('cache_read_input_token_cost', 0.0) * 1_000_000 if model_info.get('cache_read_input_token_cost') else None
+            )
+    return model_pricing
 
 def get_cost(model_name: str, cost_obj: Cost) -> float:
     """
@@ -85,7 +52,7 @@ def get_cost(model_name: str, cost_obj: Cost) -> float:
         model_key = model_name
 
     # Retrieve the pricing information for the specified model
-    pricing = MODEL_PRICING.get(model_key)
+    pricing = get_model_pricing().get(model_key)
     if not pricing:
         raise ValueError(f"Model '{model_key}' not found in pricing.")
 

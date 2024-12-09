@@ -17,18 +17,22 @@ bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
 # bot = gemini.GeminiModelSync()
 
 class Issue(BaseModel):
-    issue: str
-    description: str
-    example_log_entry: str
-    affected_hosts: str
-    affected_service: str
-    timestamp_frequency: str
-    potential_impact: str
-    recommended_action: str
+    issue: str = "Unknown"
+    description: str = "Unknown"
+    example_log_entry: str = "Unknown"
+    affected_hosts: str = "Unknown"
+    affected_service: str = "Unknown"
+    timestamp_frequency: str = "Unknown"
+    potential_impact: str = "Unknown"
+    recommended_action: str = "Unknown"
 
 class MergedIssue(BaseModel):
     issue_ids: list[str]
-    affected_hosts: str
+    affected_hosts: str = "Unknown"
+
+class MergedIssueList(BaseModel):
+    merged_issues: list[MergedIssue]
+
 class IssueList(BaseModel):
     issues: list[Issue]
 
@@ -57,14 +61,14 @@ def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, 
         json_issues = {}
         for id, issue in enumerate(issues):
             json_issues[f"issue_{id + 1}"] = {
-                "description": issue["description"],
-                "affected_host(s)": issue["affected_host(s)"],
-                "example_log_entry": issue["example_log_entry"],
-                "affected_service": issue["affected_service"],
+                "description": issue.description,
+                "affected_host(s)": issue.affected_hosts,
+                "example_log_entry": issue.example_log_entry,
+                "affected_service": issue.affected_service,
             }
         merge_agent = Agent(
             model=model,
-            result_type=MergedIssue,
+            result_type=MergedIssueList,
             system_prompt=log_merge_prompt,
         )
         merged_issues = merge_agent.run_sync(json.dumps(json_issues)).data.merged_issues
@@ -75,14 +79,14 @@ def scan_logfile(lines: list[str], log_scan_prompt: str, log_merge_prompt: str, 
             final_issues[f"issue_{issue_id + 1}"] = issue
         # now we remove any issue_ id's that are in the merged issues, apart from the first one in each issue_ids fields
         for merged_issue in merged_issues:
-            for issue_id in merged_issue["issue_ids"][1:]:
+            for issue_id in merged_issue.issue_ids[1:]:
                 if issue_id in final_issues:
                     del final_issues[issue_id]
         # now we merge the issues list to overwrite the affected_host(s)
         for merged_issue in merged_issues:
-            for issue_id in merged_issue["issue_ids"]:
+            for issue_id in merged_issue.issue_ids[1:]:
                 if issue_id in final_issues:
-                    final_issues[issue_id]["affected_host(s)"] = merged_issue["affected_host(s)"]
+                    final_issues[issue_id]["affected_host(s)"] = merged_issue.affected_hosts
     if len(final_issues) == 0:
         # no issues were merged, so copy the original issues list into the final_issues dict
         for issue_id, issue in enumerate(issues):
@@ -119,7 +123,9 @@ def get_resolution(issue: dict, resolution_prompt: str, suggestion_model: str = 
     )
     response = resolution_agent.run_sync(f"{resolution_prompt}\n\n{issue_to_report(issue)}")
     cost = costing.get_cost(suggestion_model, response.cost())
-    return response.data, cost
+    suggestion = response.data
+    suggestion = suggestion.removeprefix('```markdown').removeprefix('```').removesuffix('```')
+    return suggestion, cost
 
 def resolutions_to_report(issues: list[dict], resolution_prompt: str, suggestion_model: str = gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[str, float]:
     report = ""
@@ -131,6 +137,8 @@ def resolutions_to_report(issues: list[dict], resolution_prompt: str, suggestion
     return report, total_cost
 
 def get_log_stats(lines, model=gpt.Model.GPT_4_OMNI_MINI.value[0]) -> tuple[int, int]:
+    if model.startswith("openai:"):
+        model = model[len("openai:"):]
     enc = tiktoken.encoding_for_model(model)
     return len(lines), len(enc.encode("\n".join(lines)))
 
