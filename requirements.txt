@@ -1,6 +1,12 @@
-openai==1.4.0
+openai
 groq
 anthropic
 yaspin
 tiktoken
 google-generativeai
+langchain_experimental
+langchain_openai
+pandas
+protobuf
+streamlit
+tabulate

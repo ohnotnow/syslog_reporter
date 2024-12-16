@@ -1,0 +1,39 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Python Debugger: main app",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "env": {
+                "OPENAI_API_KEY": "define yours",
+                "OPENAI_LOG": "debug"
+            },
+            "args": [
+                "--file",
+                "syslog.log"
+            ]
+        },
+        {
+            "name": "streamlit debug",
+            "type": "debugpy",
+            "request": "launch",
+            "module": "streamlit",
+            "cwd": "${workspaceFolder}",
+            "args": [
+                "run",
+                "chatapp.py"
+            ],
+            "env": {
+                "OPENAI_API_KEY": "define yours",
+                "OPENAI_LOG": "debug"
+            },
+            "justMyCode": false,
+        }
+    ]
+}

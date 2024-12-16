@@ -9,7 +9,8 @@ import argparse
 import sys
 import tiktoken
 import logreader
-import classifier
+# uncomment the classifier import to use classifier as part of dry count
+# import classifier
 
 bot = gpt.GPTModelSync(model=gpt.Model.GPT_4_OMNI_MINI.value[0])
 # bot = gemini.GeminiModelSync()
