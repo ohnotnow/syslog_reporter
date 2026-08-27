@@ -1,0 +1,79 @@
+# Syslog digest — {{ todays_date }}
+
+Morning! Here's a quick look at what stood out{% if total_issues > issues|length %} — the {{ issues|length }} most pressing of {{ total_issues }} issues{% endif %}. Each comes with commands to dig straight in; the full breakdown is attached.
+
+{% for i in issues %}
+## {{ loop.index }}. {{ i.issue }}
+
+**Severity:** {{ i.severity }} · **Affected:** {{ i.hosts_summary() }}
+
+{{ i.description }}
+
+{% set r = resolutions.get(i.issue) %}
+{% if r %}
+**Likely cause:** {{ r.root_cause }}
+
+**Have a look:**
+
+```
+{{ r.investigate }}
+```
+
+**Try:**
+
+```
+{% for c in r.fix_commands %}
+{{ c }}
+{% endfor %}
+```
+{% if r.notes %}
+
+_Note: {{ r.notes }}_
+{% endif %}
+{% else %}
+👉 {{ i.recommended_action }}
+{% endif %}
+
+{% else %}
+{% if llm_skipped %}
+_Issue analysis was skipped (--no-llm run) — only the deterministic anomaly checks ran._
+
+{% else %}
+Nothing flagged — quiet day. 🎉
+{% endif %}
+{% endfor %}
+{% if anomalies %}
+## Unusual activity (top {{ anomalies|length }})
+
+Hosts behaving unlike their peers or their own recent normal — worth a glance.
+
+{% for a in anomalies %}
+### {{ a.host }} / {{ a.program }}
+
+_{{ a.headline }}_ ({{ a.os_family }})
+
+{{ a.detail }}
+
+{{ a.likely_causes }}
+
+{% if a.suggested_commands %}
+```
+{% for c in a.suggested_commands %}
+{{ c }}
+{% endfor %}
+```
+{% endif %}
+
+{% endfor %}
+{% endif %}
+---
+
+Full findings — all {{ total_issues }} issue{{ '' if total_issues == 1 else 's' }}, their resolutions, and {{ total_anomalies }} anomal{{ 'y' if total_anomalies == 1 else 'ies' }} — are in the attached report (**{{ attachment_name }}**).
+{% if suppressed %}
+
+_Known knowns suppressed: {{ suppressed|join('; ') }}._
+{% endif %}
+{% if expired_knowns %}
+
+_{{ expired_knowns }} known-known entr{{ 'y has' if expired_knowns == 1 else 'ies have' }} expired; noise {{ 'it' if expired_knowns == 1 else 'they' }} covered may have reappeared above._
+{% endif %}

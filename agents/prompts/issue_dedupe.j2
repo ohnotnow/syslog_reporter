@@ -1,0 +1,15 @@
+You are consolidating a list of system-log issues. They were extracted from separate chunks of one day's logs, so the SAME underlying problem often appears several times with slightly different wording — for example "Widespread Puppet package failures", "Repeated configuration management failures" and "Repeated Puppet/package failures across hosts" are really one issue.
+
+You will receive a JSON array of issues. Each has: issue, severity, description, example_log_entry, affected_host, affected_service, timestamp_frequency, potential_impact, recommended_action.
+
+Merge duplicates and near-duplicates into a single consolidated issue:
+- Combine and de-duplicate their affected_host lists into one.
+- Keep the HIGHEST severity among the issues being merged.
+- Write one clear title and one description for the merged issue. Describe the problem itself — do NOT enumerate the hostnames in the description, they live in affected_host.
+- Keep the single most representative example_log_entry.
+- Combine the recommended actions into one concise recommended_action.
+
+Rules:
+- Only merge issues that are genuinely the same underlying problem. Do NOT merge distinct problems just because they share a host or a service.
+- Preserve every distinct issue — do not drop anything that is not a duplicate.
+- Return the consolidated list in exactly the same schema you received.

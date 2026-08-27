@@ -1,0 +1,23 @@
+# Syslog Report for {{ todays_date }}
+
+## Issues
+{{ issues }}
+
+## Resolutions
+{{ resolutions }}
+
+## Unusual Activity
+{{ anomalies }}
+{% if suppressed or expired_knowns %}
+
+## Known Knowns
+
+{% if suppressed %}
+Suppressed today: {{ suppressed|join('; ') }}.
+
+{% endif %}
+{% if expired_knowns %}
+{{ expired_knowns }} known-known entr{{ 'y has' if expired_knowns == 1 else 'ies have' }} expired; noise {{ 'it' if expired_knowns == 1 else 'they' }} covered may have reappeared above.
+
+{% endif %}
+{% endif %}

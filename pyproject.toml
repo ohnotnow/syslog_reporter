@@ -1,0 +1,13 @@
+[project]
+name = "syslog-reporter"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "instructor>=1.10.0",
+    "jinja2>=3.1.6",
+    "litellm>=1.76",
+    "pydantic>=2.11.7",
+    "python-dotenv>=1.1.1",
+]
