@@ -1,5 +1,7 @@
 # Syslog reporter
 
+**Note:** this python version is unmaintained in favour of a new golang port at https://github.com/ohnotnow/syslog-reporter-go .
+
 A command-line tool that turns a noisy, org-wide syslog into a short,
 prioritised morning email: the few things actually worth a sysadmin's
 attention, each with paste-ready commands to investigate and fix.
